@@ -1,0 +1,59 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+/vendor/
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/logs/
+/src/logs/
+
+# Cache
+/cache/
+*.cache
+
+# Generated files
+/data/output/*.png
+/data/output/*.jpg
+/data/output/*.gif
+/data/output/*.html
+/src/data/output/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+/tmp/
+*.tmp
+
+# PHPUnit
+.phpunit.result.cache
+/coverage/
+
+# Composer
+composer.lock
+
+# Docker
+docker-compose.override.yml
+
+
+# Internal Docs
+docs/
+data/

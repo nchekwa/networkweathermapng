@@ -1,0 +1,59 @@
+services:
+  weathermap:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: networkweathermapng
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-8080}:80"
+    environment:
+      # Application Settings
+      - APP_ENV=${APP_ENV:-production}
+      - APP_DEBUG=${APP_DEBUG:-false}
+      - APP_TIMEZONE=${APP_TIMEZONE:-UTC}
+      - APP_SECRET_KEY=${APP_SECRET_KEY:-change_this_secret_key}
+      
+      # Database Configuration
+      - DB_TYPE=${DB_TYPE:-sqlite}
+      - DB_PATH=${DB_PATH:-/app/data/weathermap.db}
+      - DB_HOST=${DB_HOST:-}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME:-weathermap}
+      - DB_USER=${DB_USER:-}
+      - DB_PASSWORD=${DB_PASSWORD:-}
+      
+      # Authentication
+      - AUTH_ENABLED=${AUTH_ENABLED:-true}
+      - AUTH_TYPE=${AUTH_TYPE:-local}
+      - ADMIN_USER=${ADMIN_USER:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      
+      # Map Settings
+      - MAP_OUTPUT_FORMAT=${MAP_OUTPUT_FORMAT:-png}
+      - MAP_THUMB_SIZE=${MAP_THUMB_SIZE:-250}
+      - MAP_REFRESH_INTERVAL=${MAP_REFRESH_INTERVAL:-300}
+      
+      # Paths - only main paths needed, others are built from these
+      - APP_ROOT=${APP_ROOT:-/app}
+      - DATA_ROOT=${DATA_ROOT:-/app/data}
+    volumes:
+      # Persistent data
+      - weathermap_data:/app/data
+    networks:
+      - weathermap_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+
+volumes:
+  weathermap_data:
+    driver: local
+
+networks:
+  weathermap_network:
+    driver: bridge
