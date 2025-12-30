@@ -1,10 +1,10 @@
-# Zabbix Weathermap
+# NetworkWeathermapNG
 
 Network visualization tool for Zabbix - a standalone PHP application that creates network weathermaps using data from Zabbix monitoring system.
 
 ## Overview
 
-Zabbix Weathermap is based on the popular Cacti Weathermap plugin but redesigned to work as a standalone Docker container that communicates with Zabbix via its JSON-RPC API.
+NetworkWeathermapNG is based on the popular Cacti Weathermap plugin but redesigned to work as a standalone Docker container.
 
 ## Features
 
@@ -22,14 +22,14 @@ Zabbix Weathermap is based on the popular Cacti Weathermap plugin but redesigned
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-org/zabbix-weathermap.git
-   cd zabbix-weathermap
+   git clone https://github.com/nchekwa/networkweathermapng.git
+   cd networkweathermapng
    ```
 
 2. Copy and configure environment:
    ```bash
    cp .env.example .env
-   # Edit .env with your Zabbix API credentials
+   # Edit .env if you want to change app/db/auth/map settings
    ```
 
 3. Start the container:
@@ -51,18 +51,25 @@ Zabbix Weathermap is based on the popular Cacti Weathermap plugin but redesigned
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ZABBIX_API_URL` | Zabbix API endpoint URL | - |
-| `ZABBIX_API_TOKEN` | Zabbix API token (recommended) | - |
-| `ZABBIX_API_USER` | Zabbix username (if not using token) | - |
-| `ZABBIX_API_PASSWORD` | Zabbix password (if not using token) | - |
+| `APP_ENV` | Application environment | `production` |
 | `APP_DEBUG` | Enable debug mode | `false` |
 | `APP_TIMEZONE` | Application timezone | `UTC` |
+| `APP_ROOT` | Application root path | - |
+| `DATA_ROOT` | Persistent data root path | - |
 | `DB_TYPE` | Database type (`sqlite` or `mysql`) | `sqlite` |
 | `AUTH_ENABLED` | Enable authentication | `true` |
 | `ADMIN_USER` | Default admin username | `admin` |
 | `ADMIN_PASSWORD` | Default admin password | `admin` |
 | `MAP_OUTPUT_FORMAT` | Image format (`png`, `jpg`, `gif`) | `png` |
 | `MAP_REFRESH_INTERVAL` | Map refresh interval in seconds | `300` |
+
+### Data sources (Zabbix and more)
+
+Data sources are configured via the web UI and stored in the database:
+
+- Go to **Admin → Data Sources**
+- Add your Zabbix API endpoint and credentials there
+
 
 ## Map Configuration
 
@@ -108,7 +115,7 @@ LINK router1-switch1
 ## Directory Structure
 
 ```
-zabbix-weathermap/
+networkweathermapng/
 ├── docker/                 # Docker configuration
 │   ├── Dockerfile
 │   ├── docker-compose.yml
@@ -218,4 +225,4 @@ Licensed under the MIT License. See LICENSE file for details.
 ## Support
 
 - [Documentation](docs/)
-- [Issue Tracker](https://github.com/your-org/zabbix-weathermap/issues)
+- [Issue Tracker](https://github.com/nchekwa/networkweathermapng/issues)

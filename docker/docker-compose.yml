@@ -1,5 +1,6 @@
 services:
   weathermap:
+    #image: ghcr.io/nchekwa/networkweathermapng:sha-685af62
     build:
       context: ..
       dockerfile: docker/Dockerfile
