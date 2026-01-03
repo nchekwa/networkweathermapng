@@ -92,6 +92,10 @@ class Application
         $this->router->get('/login', 'AuthController@loginForm');
         $this->router->post('/login', 'AuthController@login');
         $this->router->get('/logout', 'AuthController@logout');
+
+        // Account
+        $this->router->get('/account/password', 'AccountController@changePasswordForm');
+        $this->router->post('/account/password', 'AccountController@changePassword');
         
         // Admin
         $this->router->get('/admin', 'AdminController@index');
@@ -111,6 +115,11 @@ class Application
         $this->router->get('/admin/groups/delete/{id}', 'AdminController@deleteGroup');
         
         $this->router->get('/admin/users', 'AdminController@users');
+        $this->router->get('/admin/users/create', 'AdminController@createUser');
+        $this->router->post('/admin/users/create', 'AdminController@createUser');
+        $this->router->get('/admin/users/edit/{id}', 'AdminController@editUser');
+        $this->router->post('/admin/users/edit/{id}', 'AdminController@editUser');
+        $this->router->get('/admin/users/delete/{id}', 'AdminController@deleteUser');
         $this->router->get('/admin/settings', 'AdminController@settings');
         
         // Data Sources

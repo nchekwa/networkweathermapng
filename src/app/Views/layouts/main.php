@@ -25,6 +25,7 @@
             <div class="user-menu">
                 <?php if ($user): ?>
                     <span class="username"><?= htmlspecialchars($user['username']) ?></span>
+                    <a href="/account/password" class="login-btn">Change Password</a>
                     <a href="/logout" class="logout-btn">Logout</a>
                 <?php else: ?>
                     <a href="/login" class="login-btn">Login</a>

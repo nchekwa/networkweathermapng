@@ -346,6 +346,192 @@ class AdminController extends BaseController
             'title' => 'Manage Users',
         ]);
     }
+
+    public function createUser(array $params): void
+    {
+        $this->requireAdmin();
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $username = trim((string) ($_POST['username'] ?? ''));
+            $email = trim((string) ($_POST['email'] ?? ''));
+            $role = (string) ($_POST['role'] ?? 'viewer');
+            $active = isset($_POST['active']) ? 1 : 0;
+            $password = (string) ($_POST['password'] ?? '');
+            $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
+
+            if ($username === '') {
+                $this->flash('error', 'Username is required');
+                $this->redirect('/admin/users/create');
+                return;
+            }
+
+            if (!in_array($role, ['admin', 'viewer'], true)) {
+                $this->flash('error', 'Invalid role');
+                $this->redirect('/admin/users/create');
+                return;
+            }
+
+            if ($password === '' || $confirmPassword === '') {
+                $this->flash('error', 'Password and confirmation are required');
+                $this->redirect('/admin/users/create');
+                return;
+            }
+
+            if ($password !== $confirmPassword) {
+                $this->flash('error', 'Password and confirmation do not match');
+                $this->redirect('/admin/users/create');
+                return;
+            }
+
+            if (strlen($password) < 8) {
+                $this->flash('error', 'Password must be at least 8 characters');
+                $this->redirect('/admin/users/create');
+                return;
+            }
+
+            $existing = $this->database->queryOne('SELECT id FROM users WHERE username = ?', [$username]);
+            if ($existing) {
+                $this->flash('error', 'Username already exists');
+                $this->redirect('/admin/users/create');
+                return;
+            }
+
+            try {
+                $this->database->insert('users', [
+                    'username' => $username,
+                    'password_hash' => password_hash($password, PASSWORD_DEFAULT),
+                    'email' => $email !== '' ? $email : null,
+                    'role' => $role,
+                    'active' => $active,
+                ]);
+
+                $this->flash('success', "User '{$username}' created successfully");
+                $this->redirect('/admin/users');
+            } catch (\Exception $e) {
+                $this->flash('error', 'Failed to create user: ' . $e->getMessage());
+                $this->redirect('/admin/users/create');
+            }
+            return;
+        }
+
+        $this->render('admin/user_form', [
+            'userData' => null,
+            'title' => 'Add User',
+            'action' => 'create',
+        ]);
+    }
+
+    public function editUser(array $params): void
+    {
+        $this->requireAdmin();
+
+        $id = (int) ($params['id'] ?? 0);
+        $userData = $this->database->queryOne(
+            'SELECT id, username, email, role, active, created_at FROM users WHERE id = ?',
+            [$id]
+        );
+
+        if (!$userData) {
+            $this->flash('error', 'User not found');
+            $this->redirect('/admin/users');
+            return;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $email = trim((string) ($_POST['email'] ?? ''));
+            $role = (string) ($_POST['role'] ?? $userData['role']);
+            $active = isset($_POST['active']) ? 1 : 0;
+            $password = (string) ($_POST['password'] ?? '');
+            $confirmPassword = (string) ($_POST['confirm_password'] ?? '');
+
+            if (!in_array($role, ['admin', 'viewer'], true)) {
+                $this->flash('error', 'Invalid role');
+                $this->redirect('/admin/users/edit/' . $id);
+                return;
+            }
+
+            if ($userData['username'] === 'admin') {
+                $role = 'admin';
+                $active = 1;
+            }
+
+            if (($password !== '') || ($confirmPassword !== '')) {
+                if ($password === '' || $confirmPassword === '') {
+                    $this->flash('error', 'Password and confirmation are required');
+                    $this->redirect('/admin/users/edit/' . $id);
+                    return;
+                }
+
+                if ($password !== $confirmPassword) {
+                    $this->flash('error', 'Password and confirmation do not match');
+                    $this->redirect('/admin/users/edit/' . $id);
+                    return;
+                }
+
+                if (strlen($password) < 8) {
+                    $this->flash('error', 'Password must be at least 8 characters');
+                    $this->redirect('/admin/users/edit/' . $id);
+                    return;
+                }
+            }
+
+            $updateData = [
+                'email' => $email !== '' ? $email : null,
+                'role' => $role,
+                'active' => $active,
+            ];
+
+            if ($password !== '') {
+                $updateData['password_hash'] = password_hash($password, PASSWORD_DEFAULT);
+            }
+
+            try {
+                $this->database->update('users', $updateData, 'id = ?', [$id]);
+                $this->flash('success', "User '{$userData['username']}' updated successfully");
+                $this->redirect('/admin/users');
+            } catch (\Exception $e) {
+                $this->flash('error', 'Failed to update user: ' . $e->getMessage());
+                $this->redirect('/admin/users/edit/' . $id);
+            }
+            return;
+        }
+
+        $this->render('admin/user_form', [
+            'userData' => $userData,
+            'title' => 'Edit User: ' . $userData['username'],
+            'action' => 'edit',
+        ]);
+    }
+
+    public function deleteUser(array $params): void
+    {
+        $this->requireAdmin();
+
+        $id = (int) ($params['id'] ?? 0);
+        $userData = $this->database->queryOne('SELECT id, username FROM users WHERE id = ?', [$id]);
+
+        if (!$userData) {
+            $this->flash('error', 'User not found');
+            $this->redirect('/admin/users');
+            return;
+        }
+
+        if ($userData['username'] === 'admin') {
+            $this->flash('error', 'Cannot delete the admin user');
+            $this->redirect('/admin/users');
+            return;
+        }
+
+        try {
+            $this->database->delete('user_map_permissions', 'user_id = ?', [$id]);
+            $this->database->delete('users', 'id = ?', [$id]);
+            $this->flash('success', "User '{$userData['username']}' deleted successfully");
+        } catch (\Exception $e) {
+            $this->flash('error', 'Failed to delete user: ' . $e->getMessage());
+        }
+
+        $this->redirect('/admin/users');
+    }
     
     public function settings(array $params): void
     {

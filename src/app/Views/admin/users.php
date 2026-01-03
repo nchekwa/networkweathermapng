@@ -4,7 +4,7 @@
             <a href="/admin">Admin</a> &raquo; Users
         </div>
         <div class="page-actions">
-            <button class="btn btn-primary" onclick="addUser()">Add User</button>
+            <a class="btn btn-primary" href="/admin/users/create">Add User</a>
         </div>
     </div>
     
@@ -37,9 +37,9 @@
                     </td>
                     <td><?= htmlspecialchars($user['created_at'] ?? '-') ?></td>
                     <td class="actions">
-                        <button class="btn btn-sm" onclick="editUser(<?= $user['id'] ?>)">Edit</button>
+                        <a class="btn btn-sm" href="/admin/users/edit/<?= $user['id'] ?>">Edit</a>
                         <?php if ($user['username'] !== 'admin'): ?>
-                        <button class="btn btn-sm btn-danger" onclick="deleteUser(<?= $user['id'] ?>)">Delete</button>
+                        <a class="btn btn-sm btn-danger" href="/admin/users/delete/<?= $user['id'] ?>" onclick="return confirm('Are you sure you want to delete this user?')">Delete</a>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -49,18 +49,3 @@
     </div>
 </div>
 
-<script>
-function addUser() {
-    alert('Add user functionality coming soon');
-}
-
-function editUser(id) {
-    alert('Edit user functionality coming soon');
-}
-
-function deleteUser(id) {
-    if (confirm('Are you sure you want to delete this user?')) {
-        alert('Delete user functionality coming soon');
-    }
-}
-</script>
