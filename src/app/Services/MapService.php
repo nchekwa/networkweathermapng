@@ -40,6 +40,8 @@ class MapService
             $this->config->getOutputPath(),
             $this->config->getCachePath(),
             $this->config->getLogsPath(),
+            $this->config->getLibPath() . '/WeatherMap/lib/pre',
+            $this->config->getLibPath() . '/WeatherMap/lib/post',
         ];
         
         foreach ($dirs as $dir) {
@@ -48,6 +50,17 @@ class MapService
                 error_log("MapService: Created directory: $dir");
             }
         }
+    }
+
+    private function findFirstExistingPath(array $paths): string
+    {
+        foreach ($paths as $path) {
+            if ($path !== '' && file_exists($path)) {
+                return $path;
+            }
+        }
+
+        return $paths[0] ?? '';
     }
     
     /**
@@ -352,6 +365,17 @@ class MapService
         $title = $data['name'] ?? $data['title'] ?? 'New Map';
         $width = $data['width'] ?? 800;
         $height = $data['height'] ?? 600;
+
+        $fontRegular = $this->findFirstExistingPath([
+            '/usr/share/fonts/ttf-dejavu/DejaVuSans.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+            '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+        ]);
+        $fontBold = $this->findFirstExistingPath([
+            '/usr/share/fonts/ttf-dejavu/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+            '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+        ]);
         
         return <<<CONFIG
 # WeatherMap Configuration
@@ -366,9 +390,9 @@ TITLE {$title}
 BGCOLOR 255 255 255
 
 # Default fonts
-FONTDEFINE 1 /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf 8
-FONTDEFINE 2 /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf 10
-FONTDEFINE 3 /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf 12
+FONTDEFINE 1 {$fontRegular} 8
+FONTDEFINE 2 {$fontRegular} 10
+FONTDEFINE 3 {$fontBold} 12
 
 TITLEFONT 3
 TIMEFONT 2

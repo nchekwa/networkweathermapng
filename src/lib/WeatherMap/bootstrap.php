@@ -14,6 +14,17 @@ define('WEATHERMAP_BOOTSTRAP_LOADED', true);
 // Define base path for WeatherMap library
 define('WEATHERMAP_LIB_PATH', __DIR__);
 
+$pluginDirs = [
+    WEATHERMAP_LIB_PATH . '/lib/pre',
+    WEATHERMAP_LIB_PATH . '/lib/post',
+];
+
+foreach ($pluginDirs as $dir) {
+    if (!is_dir($dir)) {
+        mkdir($dir, 0755, true);
+    }
+}
+
 // WeatherMap constants are defined in WeatherMap.class.php
 // We don't define them here to avoid redefinition warnings
 
