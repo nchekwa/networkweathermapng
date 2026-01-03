@@ -25,6 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       src: ${{ steps.filter.outputs.src }}
+      docker: ${{ steps.filter.outputs.docker }}
 
     steps:
       - name: Checkout
@@ -37,10 +38,14 @@ jobs:
           filters: |
             src:
               - 'src/**'
+            docker:
+              - 'docker/**'
+              - 'composer.json'
+              - 'composer.lock'
 
   build-and-push:
     needs: changes
-    if: ${{ github.ref_type == 'tag' || needs.changes.outputs.src == 'true' || github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.ref_type == 'tag' || needs.changes.outputs.src == 'true' || needs.changes.outputs.docker == 'true' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
 
     steps:

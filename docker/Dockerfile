@@ -63,8 +63,9 @@ WORKDIR /app
 COPY src/ /app/
 
 # Copy composer files and install dependencies
-COPY composer.json composer.lock* /app/
-RUN composer install --no-dev --optimize-autoloader --no-interaction || true
+COPY docker/composer.docker.json /app/composer.json
+COPY composer.lock* /app/
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 # Set permissions
 RUN chown -R www-data:www-data /app \

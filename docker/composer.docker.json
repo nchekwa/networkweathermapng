@@ -1,0 +1,43 @@
+{
+    "name": "networkweathermapng/networkweathermapng",
+    "description": "NetworkWeathermapNG - Network visualization tool with multiple data source support",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "NetworkWeathermapNG Team",
+            "email": "team@example.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "ext-gd": "*",
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "ext-mbstring": "*",
+        "vlucas/phpdotenv": "^5.5"
+    },
+    "require-dev": {
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "WeatherMap\\": "lib/WeatherMap/",
+            "Zabbix\\": "lib/Zabbix/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "start": "php -S localhost:8080 -t public"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true
+    },
+    "minimum-stability": "stable"
+}

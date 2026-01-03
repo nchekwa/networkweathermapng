@@ -12,10 +12,18 @@ define('APP_ROOT', dirname(__DIR__));
 define('PUBLIC_ROOT', __DIR__);
 
 // Autoloader
-require_once APP_ROOT . '/../vendor/autoload.php';
+$autoload = APP_ROOT . '/vendor/autoload.php';
+if (!file_exists($autoload)) {
+    $autoload = dirname(APP_ROOT) . '/vendor/autoload.php';
+}
+require_once $autoload;
 
 // Load environment variables
-$dotenv = Dotenv\Dotenv::createImmutable(APP_ROOT . '/..');
+$envRoot = APP_ROOT;
+if (!file_exists($envRoot . '/.env') && file_exists(dirname(APP_ROOT) . '/.env')) {
+    $envRoot = dirname(APP_ROOT);
+}
+$dotenv = Dotenv\Dotenv::createImmutable($envRoot);
 $dotenv->safeLoad();
 
 // Bootstrap application
