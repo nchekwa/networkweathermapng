@@ -41,6 +41,10 @@ services:
     volumes:
       # Persistent data
       - weathermap_data:/app/data
+      # Development mounts
+      - ../src/app:/app/app
+      - ../src/public:/app/public
+      - ../src/lib:/app/lib
     networks:
       - weathermap_network
     healthcheck:

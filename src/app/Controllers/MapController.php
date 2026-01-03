@@ -27,13 +27,55 @@ class MapController extends BaseController
         
         $groupId = (int) $this->getInput('group_id', 0);
         
-        // Get all maps the user can view
-        $maps = $this->getMapsForUser($groupId);
-        $groups = $this->getMapGroups();
+        // Get all maps the user can view to determine visible groups
+        // We fetch ALL accessible maps first, then filter for the current view
+        $allUserMaps = $this->getMapsForUser(0);
+        
+        // Determine which groups should be visible (groups containing at least one accessible map)
+        $visibleGroupIds = array_unique(array_column($allUserMaps, 'group_id'));
+        
+        $allGroups = $this->getMapGroups();
+        $visibleGroups = [];
+        
+        foreach ($allGroups as $group) {
+            // Admin sees all groups (even empty ones)
+            // Users see groups they have accessible maps in
+            // Users also see groups they are explicitly assigned to (even if empty)
+            if ($this->auth->isAdmin()) {
+                $visibleGroups[] = $group;
+                continue;
+            }
+            
+            // Check if user has maps in this group
+            if (in_array($group['id'], $visibleGroupIds)) {
+                $visibleGroups[] = $group;
+                continue;
+            }
+            
+            // Check explicit group permission (for empty groups)
+            $user = $this->auth->user();
+            if ($user) {
+                $permission = $this->database->queryOne(
+                    "SELECT 1 FROM user_group_permissions WHERE user_id = ? AND group_id = ?",
+                    [$user['id'], $group['id']]
+                );
+                if ($permission) {
+                    $visibleGroups[] = $group;
+                }
+            }
+        }
+        
+        // Filter maps for current view if a group is selected
+        $maps = $allUserMaps;
+        if ($groupId > 0) {
+            $maps = array_filter($allUserMaps, function($map) use ($groupId) {
+                return (int)$map['group_id'] === $groupId;
+            });
+        }
         
         $this->render('maps/index', [
             'maps' => $maps,
-            'groups' => $groups,
+            'groups' => $visibleGroups,
             'currentGroup' => $groupId,
             'title' => 'Network Weathermaps',
         ]);
@@ -551,7 +593,7 @@ class MapController extends BaseController
     
     private function getMapsForUser(int $groupId = 0): array
     {
-        $sql = "SELECT m.*, g.name as group_name 
+        $sql = "SELECT DISTINCT m.*, g.name as group_name 
                 FROM maps m 
                 LEFT JOIN map_groups g ON m.group_id = g.id 
                 WHERE m.active = 1";
@@ -562,16 +604,28 @@ class MapController extends BaseController
             $params[] = $groupId;
         }
         
-        $sql .= " ORDER BY g.sort_order, m.sort_order, m.name";
-        
-        $maps = $this->database->query($sql, $params);
-        
-        // Filter by permissions if auth is enabled
+        // Apply permission filters in SQL for non-admins
         if ($this->config->isAuthEnabled() && !$this->auth->isAdmin()) {
-            $maps = array_filter($maps, fn($map) => $this->auth->canViewMap((int) $map['id']));
+            $user = $this->auth->user();
+            $userId = $user['id'] ?? 0;
+            
+            $sql .= " AND (
+                -- Public maps
+                EXISTS (SELECT 1 FROM user_map_permissions ump WHERE ump.map_id = m.id AND ump.user_id = 0)
+                OR 
+                -- User specific permissions
+                EXISTS (SELECT 1 FROM user_map_permissions ump WHERE ump.map_id = m.id AND ump.user_id = ?)
+                OR
+                -- Group permissions
+                EXISTS (SELECT 1 FROM user_group_permissions ugp WHERE ugp.group_id = m.group_id AND ugp.user_id = ?)
+            )";
+            $params[] = $userId;
+            $params[] = $userId;
         }
         
-        return array_values($maps);
+        $sql .= " ORDER BY g.sort_order, m.sort_order, m.name";
+        
+        return $this->database->query($sql, $params);
     }
     
     private function getMapGroups(): array

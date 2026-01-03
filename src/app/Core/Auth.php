@@ -121,7 +121,20 @@ class Auth
             [$user['id'], $mapId]
         );
         
-        return $permission !== null;
+        if ($permission) {
+            return true;
+        }
+
+        // Check group permission
+        $groupPermission = $this->database->queryOne(
+            "SELECT 1 
+             FROM user_group_permissions ugp
+             JOIN maps m ON m.group_id = ugp.group_id
+             WHERE ugp.user_id = ? AND m.id = ?",
+            [$user['id'], $mapId]
+        );
+        
+        return $groupPermission !== null;
     }
     
     public function canEditMap(int $mapId): bool

@@ -106,6 +106,7 @@ class Application
         $this->router->post('/admin/maps/edit/{id}', 'AdminController@editMap');
         $this->router->get('/admin/maps/delete/{id}', 'AdminController@deleteMap');
         $this->router->get('/admin/maps/duplicate/{id}', 'AdminController@duplicateMap');
+        $this->router->post('/admin/maps/move/{id}', 'AdminController@moveMap');
         
         $this->router->get('/admin/groups', 'AdminController@groups');
         $this->router->get('/admin/groups/create', 'AdminController@createGroup');
@@ -121,6 +122,8 @@ class Application
         $this->router->post('/admin/users/edit/{id}', 'AdminController@editUser');
         $this->router->get('/admin/users/delete/{id}', 'AdminController@deleteUser');
         $this->router->get('/admin/settings', 'AdminController@settings');
+        $this->router->get('/admin/check-db', 'AdminController@checkDatabase');
+        $this->router->post('/admin/check-db', 'AdminController@checkDatabase');
         
         // Data Sources
         $this->router->get('/admin/data-sources', 'AdminController@dataSources');

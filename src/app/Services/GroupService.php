@@ -85,6 +85,9 @@ class GroupService
         // Move maps from this group to default group
         $this->db->update('maps', ['group_id' => 1], 'group_id = ?', [$id]);
         
+        // Delete group permissions
+        $this->db->delete('user_group_permissions', 'group_id = ?', [$id]);
+        
         // Delete the group
         return $this->db->delete('map_groups', 'id = ?', [$id]) > 0;
     }
@@ -101,5 +104,61 @@ class GroupService
             GROUP BY g.id
             ORDER BY g.sort_order, g.name
         ");
+    }
+
+    /**
+     * Get groups assigned to a user
+     */
+    public function getUserGroups(int $userId): array
+    {
+        $rows = $this->db->query(
+            "SELECT group_id FROM user_group_permissions WHERE user_id = ?",
+            [$userId]
+        );
+        
+        return array_column($rows, 'group_id');
+    }
+
+    /**
+     * Update user group permissions
+     */
+    public function updateUserGroups(int $userId, array $groupIds): void
+    {
+        $this->db->delete('user_group_permissions', 'user_id = ?', [$userId]);
+        
+        foreach ($groupIds as $groupId) {
+            $this->db->insert('user_group_permissions', [
+                'user_id' => $userId,
+                'group_id' => $groupId
+            ]);
+        }
+    }
+
+    /**
+     * Get users assigned to a group
+     */
+    public function getGroupUsers(int $groupId): array
+    {
+        $rows = $this->db->query(
+            "SELECT user_id FROM user_group_permissions WHERE group_id = ?",
+            [$groupId]
+        );
+        
+        return array_column($rows, 'user_id');
+    }
+
+    /**
+     * Update group users
+     */
+    public function updateGroupUsers(int $groupId, array $userIds): void
+    {
+        $this->db->delete('user_group_permissions', 'group_id = ?', [$groupId]);
+        
+        foreach ($userIds as $userId) {
+            $this->db->insert('user_group_permissions', [
+                'user_id' => $userId,
+                'group_id' => $groupId
+            ]);
+        }
     }
 }

@@ -35,6 +35,7 @@
                     <td>
                         <a href="/editor/edit/<?= $map['id'] ?>" class="btn btn-sm btn-primary">Edit Config</a>
                         <a href="/map/<?= $map['id'] ?>" class="btn btn-sm btn-secondary">View</a>
+                        <a href="/map/<?= $map['id'] ?>?mode=preview&amp;hours=4&amp;fullscreen=1&amp;fit=0" class="btn btn-sm btn-success">Preview</a>
                     </td>
                 </tr>
                 <?php endforeach; ?>

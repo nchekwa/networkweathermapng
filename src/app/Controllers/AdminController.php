@@ -210,6 +210,50 @@ class AdminController extends BaseController
             $this->redirect('/admin/maps');
         }
     }
+
+    /**
+     * Move a map to a different group (AJAX)
+     */
+    public function moveMap(array $params): void
+    {
+        $this->requireAdmin();
+        
+        $id = (int) ($params['id'] ?? 0);
+        $map = $this->mapService->getMap($id);
+        
+        if (!$map) {
+            $this->json(['success' => false, 'error' => 'Map not found'], 404);
+            return;
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Get JSON input
+            $input = json_decode(file_get_contents('php://input'), true);
+            $groupId = (int) ($input['group_id'] ?? 0);
+            
+            if ($groupId <= 0) {
+                $this->json(['success' => false, 'error' => 'Invalid group ID'], 400);
+                return;
+            }
+            
+            // Verify group exists
+            $group = $this->groupService->getGroup($groupId);
+            if (!$group) {
+                $this->json(['success' => false, 'error' => 'Group not found'], 404);
+                return;
+            }
+            
+            try {
+                $this->mapService->updateMap($id, ['group_id' => $groupId]);
+                $this->json(['success' => true]);
+            } catch (\Exception $e) {
+                $this->json(['success' => false, 'error' => $e->getMessage()], 500);
+            }
+            return;
+        }
+        
+        $this->json(['success' => false, 'error' => 'Invalid request method'], 405);
+    }
     
     public function groups(array $params): void
     {
@@ -240,7 +284,14 @@ class AdminController extends BaseController
             }
             
             try {
-                $this->groupService->createGroup(['name' => $name]);
+                $groupId = $this->groupService->createGroup(['name' => $name]);
+                
+                // Handle user assignments
+                if (isset($_POST['users']) && is_array($_POST['users'])) {
+                    $userIds = array_map('intval', $_POST['users']);
+                    $this->groupService->updateGroupUsers($groupId, $userIds);
+                }
+                
                 $this->flash('success', "Group '{$name}' created successfully");
             } catch (\Exception $e) {
                 $this->flash('error', 'Failed to create group: ' . $e->getMessage());
@@ -250,8 +301,13 @@ class AdminController extends BaseController
             return;
         }
         
+        // Get all users for assignment
+        $users = $this->database->query("SELECT id, username, role FROM users ORDER BY username");
+        
         $this->render('admin/group_form', [
             'group' => null,
+            'users' => $users,
+            'groupUsers' => [],
             'title' => 'Create New Group',
             'action' => 'create'
         ]);
@@ -284,6 +340,14 @@ class AdminController extends BaseController
             
             try {
                 $this->groupService->updateGroup($id, ['name' => $name]);
+                
+                // Handle user assignments
+                $userIds = [];
+                if (isset($_POST['users']) && is_array($_POST['users'])) {
+                    $userIds = array_map('intval', $_POST['users']);
+                }
+                $this->groupService->updateGroupUsers($id, $userIds);
+                
                 $this->flash('success', "Group '{$name}' updated successfully");
             } catch (\Exception $e) {
                 $this->flash('error', 'Failed to update group: ' . $e->getMessage());
@@ -293,8 +357,14 @@ class AdminController extends BaseController
             return;
         }
         
+        // Get all users and currently assigned users
+        $users = $this->database->query("SELECT id, username, role FROM users ORDER BY username");
+        $groupUsers = $this->groupService->getGroupUsers($id);
+        
         $this->render('admin/group_form', [
             'group' => $group,
+            'users' => $users,
+            'groupUsers' => $groupUsers,
             'title' => 'Edit Group: ' . $group['name'],
             'action' => 'edit'
         ]);
@@ -397,13 +467,19 @@ class AdminController extends BaseController
             }
 
             try {
-                $this->database->insert('users', [
+                $userId = $this->database->insert('users', [
                     'username' => $username,
                     'password_hash' => password_hash($password, PASSWORD_DEFAULT),
                     'email' => $email !== '' ? $email : null,
                     'role' => $role,
                     'active' => $active,
                 ]);
+
+                // Handle group assignments
+                if (isset($_POST['groups']) && is_array($_POST['groups'])) {
+                    $groupIds = array_map('intval', $_POST['groups']);
+                    $this->groupService->updateUserGroups($userId, $groupIds);
+                }
 
                 $this->flash('success', "User '{$username}' created successfully");
                 $this->redirect('/admin/users');
@@ -414,8 +490,12 @@ class AdminController extends BaseController
             return;
         }
 
+        $groups = $this->groupService->getAllGroups();
+
         $this->render('admin/user_form', [
             'userData' => null,
+            'userGroups' => [],
+            'groups' => $groups,
             'title' => 'Add User',
             'action' => 'create',
         ]);
@@ -487,6 +567,14 @@ class AdminController extends BaseController
 
             try {
                 $this->database->update('users', $updateData, 'id = ?', [$id]);
+
+                // Handle group assignments
+                $groupIds = [];
+                if (isset($_POST['groups']) && is_array($_POST['groups'])) {
+                    $groupIds = array_map('intval', $_POST['groups']);
+                }
+                $this->groupService->updateUserGroups($id, $groupIds);
+
                 $this->flash('success', "User '{$userData['username']}' updated successfully");
                 $this->redirect('/admin/users');
             } catch (\Exception $e) {
@@ -496,8 +584,13 @@ class AdminController extends BaseController
             return;
         }
 
+        $groups = $this->groupService->getAllGroups();
+        $userGroups = $this->groupService->getUserGroups($id);
+
         $this->render('admin/user_form', [
             'userData' => $userData,
+            'userGroups' => $userGroups,
+            'groups' => $groups,
             'title' => 'Edit User: ' . $userData['username'],
             'action' => 'edit',
         ]);
@@ -524,6 +617,7 @@ class AdminController extends BaseController
 
         try {
             $this->database->delete('user_map_permissions', 'user_id = ?', [$id]);
+            $this->database->delete('user_group_permissions', 'user_id = ?', [$id]);
             $this->database->delete('users', 'id = ?', [$id]);
             $this->flash('success', "User '{$userData['username']}' deleted successfully");
         } catch (\Exception $e) {
@@ -693,5 +787,35 @@ class AdminController extends BaseController
         $result = $this->dataSourceService->testConnection($id);
         
         $this->json($result);
+    }
+
+    public function checkDatabase(array $params): void
+    {
+        $this->requireAdmin();
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // If posted with fix=1 (future implementation), we could attempt auto-repair
+            // For now just re-run initialization
+            if (isset($_POST['fix']) && $_POST['fix'] === '1') {
+                try {
+                    // Force schema initialization check
+                    // This is a bit of a hack since we can't easily access the private method
+                    // But we can re-instantiate the database connection which triggers it
+                    $db = new \App\Core\Database($this->config);
+                    $this->flash('success', 'Database schema update attempted.');
+                } catch (\Exception $e) {
+                    $this->flash('error', 'Database update failed: ' . $e->getMessage());
+                }
+                $this->redirect('/admin/check-db');
+                return;
+            }
+        }
+        
+        $results = $this->database->checkDatabaseIntegrity();
+        
+        $this->render('admin/check_db', [
+            'results' => $results,
+            'title' => 'Database Integrity Check',
+        ]);
     }
 }

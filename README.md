@@ -1,5 +1,13 @@
 # NetworkWeathermapNG
 
+![Network Weathermap Example 1](img/maps1.png)
+![Network Weathermap Example 2](img/maps2.png)
+![Network Weathermap Example 3](img/maps3.png)
+![Network Weathermap Example 4](img/maps4.png)
+![Network Weathermap Example 5](img/maps5.png)
+![Network Weathermap Example 6](img/maps6.png)
+![Network Weathermap Example 7](img/maps7.png)
+
 Network visualization tool for Zabbix - a standalone PHP application that creates network weathermaps using data from Zabbix monitoring system.
 
 ## Overview

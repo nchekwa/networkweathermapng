@@ -48,6 +48,24 @@
             </div>
 
             <div class="form-group">
+                <label>Group Access</label>
+                <div class="groups-list">
+                    <?php if (empty($groups)): ?>
+                        <p class="text-muted">No groups available.</p>
+                    <?php else: ?>
+                        <?php foreach ($groups as $group): ?>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="groups[]" value="<?= $group['id'] ?>" 
+                                    <?= in_array($group['id'], $userGroups ?? []) ? 'checked' : '' ?>>
+                                <?= htmlspecialchars($group['name']) ?>
+                            </label>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+                <small class="form-text text-muted">Select map groups this user can access.</small>
+            </div>
+
+            <div class="form-group">
                 <label for="password"><?= $action === 'create' ? 'Password *' : 'New Password' ?></label>
                 <input type="password" id="password" name="password" class="form-control" <?= $action === 'create' ? 'required' : '' ?>>
             </div>

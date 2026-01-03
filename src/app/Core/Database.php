@@ -84,6 +84,7 @@ class Database
             'map_groups',
             'users',
             'user_map_permissions',
+            'user_group_permissions',
             'settings',
             'data_sources',
             'data_source_cache',
@@ -143,6 +144,13 @@ CREATE TABLE IF NOT EXISTS user_map_permissions (
     user_id INTEGER,
     map_id INTEGER,
     PRIMARY KEY (user_id, map_id)
+);
+
+-- User group permissions
+CREATE TABLE IF NOT EXISTS user_group_permissions (
+    user_id INTEGER,
+    group_id INTEGER,
+    PRIMARY KEY (user_id, group_id)
 );
 
 -- Settings
@@ -256,5 +264,86 @@ SQL;
     public function getPdo(): PDO
     {
         return $this->pdo;
+    }
+
+    /**
+     * Check database integrity
+     * Verifies that all required tables exist and have the correct schema
+     */
+    public function checkDatabaseIntegrity(): array
+    {
+        $results = [
+            'status' => 'ok',
+            'tables' => [],
+            'errors' => []
+        ];
+        
+        // Define expected schema
+        $requiredTables = [
+            'maps' => [
+                'columns' => ['id', 'name', 'config_file', 'group_id', 'active', 'sort_order', 'title_cache', 'thumb_width', 'thumb_height', 'schedule', 'last_run', 'duration', 'created_at', 'updated_at']
+            ],
+            'map_groups' => [
+                'columns' => ['id', 'name', 'sort_order']
+            ],
+            'users' => [
+                'columns' => ['id', 'username', 'password_hash', 'email', 'role', 'active', 'created_at']
+            ],
+            'user_map_permissions' => [
+                'columns' => ['user_id', 'map_id']
+            ],
+            'user_group_permissions' => [
+                'columns' => ['user_id', 'group_id']
+            ],
+            'settings' => [
+                'columns' => ['id', 'map_id', 'name', 'value']
+            ],
+            'data_sources' => [
+                'columns' => ['id', 'name', 'type', 'url', 'username', 'password', 'api_token', 'active', 'settings', 'last_check', 'status', 'created_at', 'updated_at']
+            ],
+            'data_source_cache' => [
+                'columns' => ['id', 'source_id', 'cache_key', 'data', 'expires_at', 'created_at']
+            ]
+        ];
+        
+        $existingTables = [];
+        $tablesQuery = $this->query("SELECT name FROM sqlite_master WHERE type='table'");
+        foreach ($tablesQuery as $row) {
+            $existingTables[] = strtolower($row['name']);
+        }
+        
+        foreach ($requiredTables as $tableName => $specs) {
+            $tableStatus = [
+                'name' => $tableName,
+                'exists' => false,
+                'missing_columns' => []
+            ];
+            
+            if (in_array(strtolower($tableName), $existingTables)) {
+                $tableStatus['exists'] = true;
+                
+                // Check columns
+                $columns = [];
+                $colsQuery = $this->query("PRAGMA table_info($tableName)");
+                foreach ($colsQuery as $col) {
+                    $columns[] = strtolower($col['name']);
+                }
+                
+                foreach ($specs['columns'] as $requiredCol) {
+                    if (!in_array(strtolower($requiredCol), $columns)) {
+                        $tableStatus['missing_columns'][] = $requiredCol;
+                        $results['errors'][] = "Table '$tableName' is missing column '$requiredCol'";
+                        $results['status'] = 'error';
+                    }
+                }
+            } else {
+                $results['errors'][] = "Table '$tableName' is missing";
+                $results['status'] = 'error';
+            }
+            
+            $results['tables'][$tableName] = $tableStatus;
+        }
+        
+        return $results;
     }
 }

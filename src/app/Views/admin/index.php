@@ -50,6 +50,11 @@
                     <span class="menu-title">Settings</span>
                     <span class="menu-desc">Configure application settings</span>
                 </a>
+                <a href="/admin/check-db" class="menu-item">
+                    <span class="menu-icon">🛡️</span>
+                    <span class="menu-title">Check DB</span>
+                    <span class="menu-desc">Verify database integrity</span>
+                </a>
                 <a href="/editor" class="menu-item">
                     <span class="menu-icon">✏️</span>
                     <span class="menu-title">Editor</span>
