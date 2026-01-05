@@ -483,6 +483,26 @@ class ZabbixClient implements DataSourceClientInterface
                 continue;
             }
 
+            // Support for pfSense firewalls using block.v4.bps keys
+            if (preg_match('/^net\\.if\\.in\\.block\\.v4\\.bps\\[(\\d+)\\]$/', $key, $m)) {
+                $idx = $m[1];
+                $byIndex[$idx] ??= ['idx' => $idx, 'label' => '', 'in' => '', 'out' => ''];
+                $byIndex[$idx]['in'] = $key;
+                if ($byIndex[$idx]['label'] === '') {
+                    $byIndex[$idx]['label'] = $this->extractInterfaceLabelFromItemName($name);
+                }
+                continue;
+            }
+            if (preg_match('/^net\\.if\\.out\\.block\\.v4\\.bps\\[(\\d+)\\]$/', $key, $m)) {
+                $idx = $m[1];
+                $byIndex[$idx] ??= ['idx' => $idx, 'label' => '', 'in' => '', 'out' => ''];
+                $byIndex[$idx]['out'] = $key;
+                if ($byIndex[$idx]['label'] === '') {
+                    $byIndex[$idx]['label'] = $this->extractInterfaceLabelFromItemName($name);
+                }
+                continue;
+            }
+
             // Fallback: old-style agent keys net.if.in[eth0] / net.if.out[eth0]
             if (preg_match('/^net\\.if\\.(in|out)\\[(.+)\\]$/', $key, $m)) {
                 $dir = $m[1];
@@ -525,14 +545,45 @@ class ZabbixClient implements DataSourceClientInterface
 
     private function extractInterfaceLabelFromItemName(string $name): string
     {
-        // Typical: "Interface ether2(): Bits received" or "Interface VLAN410(Core): Bits sent"
-        if (preg_match('/^Interface\s+(.+?):/i', $name, $m)) {
+        // pfSense format: "Interface [vlan0.421(V421_DMZ (dmz))]: Inbound IPv4 traffic blocked"
+        if (preg_match('/^Interface\s+\[(.+?)\]:/i', $name, $m)) {
             $label = trim($m[1]);
             if ($label !== '') {
-                return $label;
+                return $this->cleanLabel($label);
             }
         }
+        
+        // Standard format: "Interface ether2(): Bits received" or "Interface VLAN410(CORE:Backbone P2P): Bits received"
+        if (preg_match('/^Interface\s+([^:]+?):\s+(?:Bits|Packets|Octets)/i', $name, $m)) {
+            $label = trim($m[1]);
+            if ($label !== '') {
+                return $this->cleanLabel($label);
+            }
+        }
+        
+        // Additional fallback for SNMP items that might not follow the standard format
+        if (preg_match('/^(.+?)\s+(?:Bits|Packets|Octets|Inbound|Outbound)/i', $name, $m)) {
+            $label = trim($m[1]);
+            if ($label !== '') {
+                return $this->cleanLabel($label);
+            }
+        }
+        
         return '';
+    }
+    
+    private function cleanLabel(string $label): string
+    {
+        // Remove trailing colon
+        $label = rtrim($label, ':');
+        
+        // Remove empty parentheses
+        $label = preg_replace('/\(\s*\)/', '', $label);
+        
+        // Clean up any extra whitespace
+        $label = trim($label);
+        
+        return $label;
     }
 
     public function getBandwidthData(array $selection, int $minutes = 1440): array

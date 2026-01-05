@@ -57,3 +57,4 @@ docker-compose.override.yml
 # Internal Docs
 docs/
 data/
+tests/
